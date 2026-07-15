@@ -1,0 +1,17 @@
+# 客服投诉标签系统 - 依赖
+
+# DeepSeek API (OpenAI 兼容接口)
+openai>=1.0.0
+
+# 数据处理
+pandas>=2.0.0
+pyyaml>=6.0
+python-dotenv>=1.0.0
+
+# 批处理 & 日志
+tqdm>=4.60.0
+tenacity>=8.0.0
+
+# 测试
+pytest>=7.0.0
+pytest-cov>=4.0.0

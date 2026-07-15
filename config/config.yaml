@@ -1,0 +1,59 @@
+# ============================================================
+# 客服投诉标签系统 - 配置文件
+# ============================================================
+
+# --- DeepSeek API 配置 ---
+api:
+  base_url: "https://api.deepseek.com"
+  model: "deepseek-chat"
+  temperature: 0.1
+  max_tokens: 512
+
+# --- 输入输出 ---
+data:
+  input: "data/sample_chat.csv"
+  output: "output/results.csv"
+  checkpoint: "output/checkpoint.json"
+  id_column: "id"
+  text_column: "text"
+
+# --- 批处理 ---
+batch:
+  size: 20
+  rate_limit: 5.0
+  min_interval: 0.2
+
+# --- 重试策略 ---
+retry:
+  max_attempts: 3
+  min_wait: 2
+  max_wait: 30
+
+# --- 日志 ---
+logging:
+  level: "INFO"
+  file: "logs/labeling.log"
+  format: "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
+
+# ============================================================
+# 业务规则
+# ============================================================
+rules:
+  complaint_types:
+    - "退款/退货"
+    - "物流/配送"
+    - "服务态度"
+    - "产品质量"
+    - "虚假宣传"
+    - "霸王条款"
+    - "欺诈/诈骗"
+    - "价格问题"
+    - "会员/优惠"
+    - "订单问题"
+
+  sentiment_levels:
+    0: "满意 - 用户表达感谢或满意"
+    2: "一般 - 中性咨询或普通反馈"
+    5: "有点不满 - 轻微抱怨或不满"
+    8: "投诉 - 明显投诉或愤怒"
+    10: "极端愤怒 - 强烈投诉或威胁性言论"
