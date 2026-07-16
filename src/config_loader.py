@@ -158,7 +158,7 @@ class Config:
 
         """
         keys = key.split(".")
-        value = self._raw
+        value: Any = self._raw
         for k in keys:
             if isinstance(value, dict):
                 value = value.get(k)

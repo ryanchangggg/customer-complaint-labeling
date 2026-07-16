@@ -72,7 +72,7 @@ class DeepSeekClient:
         self._last_request_time = time.time()
 
         # Parse response content
-        content = response.choices[0].message.content.strip()
+        content = (response.choices[0].message.content or "").strip()
 
         # Clean possible markdown code block markers
         if content.startswith("```"):

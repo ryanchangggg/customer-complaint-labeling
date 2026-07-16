@@ -23,8 +23,8 @@ def generate_report(results_path: str = "output/results.csv") -> str:
 
     # Read and aggregate
     total = 0
-    score_dist = Counter()
-    keyword_counter = Counter()
+    score_dist: Counter[int] = Counter()
+    keyword_counter: Counter[str] = Counter()
     type_counter: Counter[str] = Counter()
     no_type = 0
     errors = 0
