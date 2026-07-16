@@ -72,4 +72,4 @@ omit = ["tests/*"]
 
 [[tool.mypy.overrides]]
 module = "numpy.*"
-ignore_errors = true
+follow_imports = "skip"
