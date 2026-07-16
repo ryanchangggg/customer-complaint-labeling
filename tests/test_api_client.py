@@ -1,4 +1,4 @@
-"""Unit tests for the API client module"""
+"""Unit tests for the API client module."""
 
 import json
 import os
@@ -20,7 +20,7 @@ def config() -> Config:
 
 @pytest.fixture
 def valid_json_response() -> str:
-    """Valid API JSON response content."""
+    """Provide a valid API JSON response."""
     return json.dumps({
         "keywords": ["Course Quality", "Complaint"],
         "sentiment_score": 8,
@@ -30,7 +30,7 @@ def valid_json_response() -> str:
 
 @pytest.fixture
 def markdown_json_response() -> str:
-    """API response wrapped in a markdown code block."""
+    """Provide an API response wrapped in a markdown code block."""
     content = json.dumps({
         "keywords": ["Slow Updates"],
         "sentiment_score": 5,
@@ -171,6 +171,7 @@ def test_analyze_batch(
 
 @pytest.fixture(autouse=True)
 def cleanup() -> None:
+    """Clean up environment variables after tests."""
     yield
     if "DEEPSEEK_API_KEY" in os.environ:
         del os.environ["DEEPSEEK_API_KEY"]

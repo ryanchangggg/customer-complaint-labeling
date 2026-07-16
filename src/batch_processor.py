@@ -1,4 +1,4 @@
-"""Batch processing module — supports checkpoint resumption and progress bar"""
+"""Batch processing module — supports checkpoint resumption and progress bar."""
 
 import json
 import os
@@ -16,8 +16,10 @@ from src.reporter import write_report
 
 
 class BatchProcessor:
-    """Batch processing controller that manages CSV reading, batched API calls,
-    checkpoint resumption, and result output."""
+    """Batch processing controller.
+
+    Manages CSV reading, batched API calls, checkpoint resumption, and result output.
+    """
 
     def __init__(
         self,
@@ -33,6 +35,7 @@ class BatchProcessor:
             api_client: DeepSeek API client.
             prompt_manager: Prompt manager.
             logger: Logger instance.
+
         """
         self.config = config
         self.client = api_client
@@ -51,11 +54,12 @@ class BatchProcessor:
 
         Returns:
             (existing results list, processed ID set).
+
         """
         if not os.path.exists(path):
             return [], set()
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
             processed_ids = {str(r[self.config.id_column]) for r in data}
             if self.logger:
@@ -78,6 +82,7 @@ class BatchProcessor:
         Args:
             path: Checkpoint file path.
             results: Results list (id + analysis fields only).
+
         """
         path_obj = Path(path)
         path_obj.parent.mkdir(parents=True, exist_ok=True)
@@ -93,8 +98,9 @@ class BatchProcessor:
     def _label_row(
         self, row_id: str, text: str
     ) -> dict[str, Any]:
-        """Analyze a single row of text via the LLM, then apply fallback
-        classification.
+        """Analyze a single row of text via the LLM.
+
+        Then applies fallback classification.
 
         Args:
             row_id: Record ID.
@@ -102,6 +108,7 @@ class BatchProcessor:
 
         Returns:
             Labeled result with complaint_type.
+
         """
         prompt = self.prompt_mgr.render(text)
         result = self.client.analyze(prompt, self.logger)
@@ -145,6 +152,7 @@ class BatchProcessor:
         Returns:
             Rows ready for CSV output, each containing id, text, and
             all analysis fields.
+
         """
         # Read the original source data
         df_source = pd.read_csv(self.config.data_input)
@@ -176,6 +184,7 @@ class BatchProcessor:
 
         Returns:
             Output CSV file path.
+
         """
         # Read input data
         input_path = self.config.data_input
@@ -275,6 +284,7 @@ class BatchProcessor:
 
         Returns:
             Output file path.
+
         """
         output_path = Path(path)
         output_path.parent.mkdir(parents=True, exist_ok=True)

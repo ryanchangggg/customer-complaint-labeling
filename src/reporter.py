@@ -3,9 +3,8 @@
 import csv
 from collections import Counter
 from pathlib import Path
-from typing import Any
 
-from src.classifier import VALID_TYPES, classify_keywords, is_valid_complaint_type
+from src.classifier import VALID_TYPES, is_valid_complaint_type
 
 
 def generate_report(results_path: str = "output/results.csv") -> str:
@@ -16,6 +15,7 @@ def generate_report(results_path: str = "output/results.csv") -> str:
 
     Returns:
         A formatted report string.
+
     """
     path = Path(results_path)
     if not path.exists():
@@ -71,8 +71,8 @@ def generate_report(results_path: str = "output/results.csv") -> str:
     lines.append("=" * 60)
     lines.append(f"  Total records:         {total}")
     lines.append(f"  Processing errors:     {errors}")
-    lines.append(f"  Severe complaints (8+): {score8plus} ({score8plus/max(total,1)*100:.1f}%)")
-    lines.append("")
+    sev = f"  Severe complaints (8+): {score8plus} ({score8plus/max(total,1)*100:.1f}%)"
+    lines.append(sev)
 
     # Sentiment distribution
     lines.append("  Sentiment Score Distribution:")
@@ -125,6 +125,7 @@ def write_report(results_path: str, output_path: str = "output/report.txt") -> s
 
     Returns:
         The report text.
+
     """
     report = generate_report(results_path)
     out = Path(output_path)

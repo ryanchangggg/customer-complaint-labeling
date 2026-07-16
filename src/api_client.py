@@ -1,4 +1,4 @@
-"""DeepSeek API client module"""
+"""DeepSeek API client module."""
 
 import json
 import time
@@ -6,7 +6,6 @@ from typing import Any
 
 from openai import APIError, OpenAI, RateLimitError
 from tenacity import (
-    before_sleep_log,
     retry,
     retry_if_exception_type,
     stop_after_attempt,
@@ -24,6 +23,7 @@ class DeepSeekClient:
 
         Args:
             config: Global configuration object.
+
         """
         self._config = config
         self._client = OpenAI(
@@ -33,7 +33,7 @@ class DeepSeekClient:
         self._last_request_time = 0.0
 
     def _rate_limit_wait(self) -> None:
-        """Rate limiting: ensure the interval between calls is at least the configured minimum."""
+        """Enforce minimum interval between API calls."""
         elapsed = time.time() - self._last_request_time
         min_gap = self._config.min_interval
         if elapsed < min_gap:
@@ -58,6 +58,7 @@ class DeepSeekClient:
         Raises:
             ValueError: API response format is abnormal.
             APIError: API call failed.
+
         """
         self._rate_limit_wait()
 
@@ -111,6 +112,7 @@ class DeepSeekClient:
 
         Returns:
             List of analysis results.
+
         """
         results: list[dict[str, Any]] = []
         for prompt in batch_prompts:

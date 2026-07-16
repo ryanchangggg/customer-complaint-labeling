@@ -1,8 +1,7 @@
-"""Utility functions module"""
+"""Utility functions module."""
 
 import json
 import logging
-import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -24,6 +23,7 @@ def setup_logger(
 
     Returns:
         Configured logger.
+
     """
     logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, level.upper(), logging.INFO))
@@ -55,6 +55,7 @@ def ensure_dir(path: str | Path) -> Path:
 
     Returns:
         Path object of the directory.
+
     """
     p = Path(path)
     p.mkdir(parents=True, exist_ok=True)
@@ -68,6 +69,7 @@ def save_json(data: Any, path: str | Path, **kwargs: Any) -> None:
         data: Data to save.
         path: File path.
         kwargs: Extra arguments passed to json.dump.
+
     """
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -83,8 +85,9 @@ def load_json(path: str | Path) -> Any:
 
     Returns:
         Parsed data.
+
     """
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -93,5 +96,6 @@ def get_project_root() -> Path:
 
     Returns:
         Path object of the project root.
+
     """
     return Path(__file__).resolve().parent.parent

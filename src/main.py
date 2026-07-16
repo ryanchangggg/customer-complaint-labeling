@@ -1,4 +1,4 @@
-"""Customer Complaint Labeling System - Main Entry Point"""
+"""Customer Complaint Labeling System - Main Entry Point."""
 
 import argparse
 import sys
@@ -15,9 +15,11 @@ def parse_args() -> argparse.Namespace:
 
     Returns:
         Parsed argument namespace.
+
     """
     parser = argparse.ArgumentParser(
-        description="Customer Complaint Labeling System - DeepSeek API based text labeling tool"
+        description="Customer Complaint Labeling System - "
+        "DeepSeek API based text labeling tool"
     )
     parser.add_argument(
         "--config",
@@ -54,7 +56,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    """Main function."""
+    """Run the main labeling pipeline."""
     args = parse_args()
 
     # Load configuration

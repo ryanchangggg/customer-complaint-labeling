@@ -1,8 +1,7 @@
-"""Unit tests for the configuration loader module"""
+"""Unit tests for the configuration loader module."""
 
 import os
 import tempfile
-from pathlib import Path
 
 import pytest
 import yaml

@@ -4,8 +4,6 @@ This is a fallback classifier used when the LLM does not return a valid
 complaint_type, or for post-processing validation.
 """
 
-import re
-from typing import Optional
 
 # Mapping rules: each complaint_type has a list of keyword patterns.
 # A match on any pattern in the list classifies to that type.
@@ -118,7 +116,7 @@ KEYWORD_RULES: dict[str, list[str]] = {
 }
 
 
-def classify_keywords(keywords: list[str]) -> Optional[str]:
+def classify_keywords(keywords: list[str]) -> str | None:
     """Map a list of free-form keywords to the best matching complaint type.
 
     Args:
@@ -126,8 +124,9 @@ def classify_keywords(keywords: list[str]) -> Optional[str]:
 
     Returns:
         The matched complaint_type string, or None if no rule matches.
+
     """
-    best_type: Optional[str] = None
+    best_type: str | None = None
     best_score = 0
 
     for complaint_type, patterns in KEYWORD_RULES.items():
@@ -144,7 +143,7 @@ def classify_keywords(keywords: list[str]) -> Optional[str]:
     return best_type if best_score > 0 else None
 
 
-def is_valid_complaint_type(type_str: Optional[str]) -> bool:
+def is_valid_complaint_type(type_str: str | None) -> bool:
     """Check if a complaint_type string is one of the predefined types.
 
     Args:
@@ -152,6 +151,7 @@ def is_valid_complaint_type(type_str: Optional[str]) -> bool:
 
     Returns:
         True if it matches a known type.
+
     """
     return type_str in KEYWORD_RULES
 

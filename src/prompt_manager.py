@@ -1,4 +1,4 @@
-"""Prompt management module"""
+"""Prompt management module."""
 
 from pathlib import Path
 
@@ -13,6 +13,7 @@ class PromptManager:
 
         Args:
             prompt_path: Path to prompt.txt, defaults to config/prompt.txt.
+
         """
         if prompt_path is None:
             prompt_path = get_project_root() / "config" / "prompt.txt"
@@ -21,7 +22,7 @@ class PromptManager:
 
     def _load_template(self) -> str:
         """Load the prompt template from file."""
-        with open(self._prompt_path, "r", encoding="utf-8") as f:
+        with open(self._prompt_path, encoding="utf-8") as f:
             return f.read().strip()
 
     def render(self, text: str) -> str:
@@ -32,6 +33,7 @@ class PromptManager:
 
         Returns:
             The completed prompt with text substituted.
+
         """
         return self._template.replace("{{TEXT}}", text)
 

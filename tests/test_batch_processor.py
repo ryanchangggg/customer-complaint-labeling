@@ -1,4 +1,4 @@
-"""Unit tests for the batch processing module"""
+"""Unit tests for the batch processing module."""
 
 import csv
 import json
@@ -53,11 +53,21 @@ def mock_api_client() -> MagicMock:
     """Provide a mock API client that returns 5 preset results in order."""
     client = MagicMock()
     results = [
-        {"keywords": ["Refund", "Complaint"], "sentiment_score": 8, "reason": "User is dissatisfied with refund speed"},
-        {"keywords": ["Satisfied"], "sentiment_score": 0, "reason": "User expresses satisfaction"},
-        {"keywords": ["Poor Service"], "sentiment_score": 8, "reason": "User complains about poor service"},
-        {"keywords": ["Slow Updates"], "sentiment_score": 5, "reason": "User complains about slow updates"},
-        {"keywords": ["Satisfied"], "sentiment_score": 0, "reason": "User is satisfied with quality"},
+        {"keywords": ["Refund", "Complaint"],
+            "sentiment_score": 8,
+            "reason": "User is dissatisfied with refund speed"},
+        {"keywords": ["Satisfied"],
+            "sentiment_score": 0,
+            "reason": "User expresses satisfaction"},
+        {"keywords": ["Poor Service"],
+            "sentiment_score": 8,
+            "reason": "User complains about poor service"},
+        {"keywords": ["Slow Updates"],
+            "sentiment_score": 5,
+            "reason": "User complains about slow updates"},
+        {"keywords": ["Satisfied"],
+            "sentiment_score": 0,
+            "reason": "User is satisfied with quality"},
     ]
     client.analyze.side_effect = results
     return client
@@ -81,8 +91,17 @@ def test_load_checkpoint_some(mock_config: Config, temp_dir: str) -> None:
     """Test loading a checkpoint with existing data."""
     checkpoint_path = mock_config.data_checkpoint
     checkpoint_data = [
-        {"id": "1", "text": "test", "keywords": "Refund", "sentiment_score": 8, "sentiment_reason": "reason"},
-        {"id": "2", "text": "test2", "keywords": "Satisfied", "sentiment_score": 0, "sentiment_reason": "good"},
+        {
+            "id": "1", "text": "test",
+            "keywords": "Refund", "sentiment_score": 8,
+            "sentiment_reason": "reason"
+        },
+        {
+            "id": "2", "text": "test2",
+            "keywords": "Satisfied",
+            "sentiment_score": 0,
+            "sentiment_reason": "good"
+        },
     ]
     with open(checkpoint_path, "w", encoding="utf-8") as f:
         json.dump(checkpoint_data, f, ensure_ascii=False)
@@ -105,7 +124,10 @@ def test_run_basic(
     import pandas as pd
     df = pd.read_csv(output_path)
     assert len(df) == 5
-    assert list(df.columns) == ["id", "text", "keywords", "sentiment_score", "sentiment_reason", "complaint_type"]
+    assert list(df.columns) == [
+            "id", "text", "keywords", "sentiment_score",
+            "sentiment_reason", "complaint_type",
+        ]
 
     row1 = df[df["id"].astype(str) == "1"].iloc[0]
     assert "Refund" in str(row1["keywords"])
@@ -124,17 +146,33 @@ def test_run_checkpoint_resume(
     """
     api_client = MagicMock()
     api_client.analyze.side_effect = [
-        {"keywords": ["Poor Service"], "sentiment_score": 8, "reason": "User complains about poor service"},
-        {"keywords": ["Slow Updates"], "sentiment_score": 5, "reason": "User complains about slow updates"},
-        {"keywords": ["Satisfied"], "sentiment_score": 0, "reason": "User is satisfied with quality"},
+        {"keywords": ["Poor Service"],
+            "sentiment_score": 8,
+            "reason": "User complains about poor service"},
+        {"keywords": ["Slow Updates"],
+            "sentiment_score": 5,
+            "reason": "User complains about slow updates"},
+        {"keywords": ["Satisfied"],
+            "sentiment_score": 0,
+            "reason": "User is satisfied with quality"},
     ]
 
     checkpoint_path = mock_config.data_checkpoint
     checkpoint_data = [
-        {"id": "1", "text": "Why hasn't anyone handled my refund?", "keywords": "Refund;Complaint",
-         "sentiment_score": 8, "sentiment_reason": "User is dissatisfied with refund speed"},
-        {"id": "2", "text": "Thank you, very satisfied.", "keywords": "Satisfied",
-         "sentiment_score": 0, "sentiment_reason": "User expresses satisfaction"},
+        {
+            "id": "1",
+            "text": "Why hasn't anyone handled my refund?",
+            "keywords": "Refund;Complaint",
+            "sentiment_score": 8,
+            "sentiment_reason": "User is dissatisfied with refund speed",
+        },
+        {
+            "id": "2",
+            "text": "Thank you, very satisfied.",
+            "keywords": "Satisfied",
+            "sentiment_score": 0,
+            "sentiment_reason": "User expresses satisfaction",
+        },
     ]
     with open(checkpoint_path, "w", encoding="utf-8") as f:
         json.dump(checkpoint_data, f, ensure_ascii=False)
@@ -176,6 +214,7 @@ def test_run_empty_input(mock_config: Config) -> None:
 
 @pytest.fixture(autouse=True)
 def cleanup_env() -> None:
+    """Clean up environment variables after tests."""
     yield
     if "DEEPSEEK_API_KEY" in os.environ:
         del os.environ["DEEPSEEK_API_KEY"]
