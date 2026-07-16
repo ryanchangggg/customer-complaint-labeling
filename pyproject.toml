@@ -50,7 +50,7 @@ quote-style = "double"
 # Mypy — static type checking
 # ============================================================
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.13"
 strict = false
 ignore_missing_imports = true
 disallow_untyped_defs = false
@@ -71,5 +71,6 @@ source = ["src"]
 omit = ["tests/*"]
 
 [[tool.mypy.overrides]]
-module = "numpy.*"
+module = ["numpy.*", "pandas.*"]
+ignore_errors = true
 follow_imports = "skip"
