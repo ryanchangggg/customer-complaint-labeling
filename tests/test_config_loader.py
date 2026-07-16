@@ -135,7 +135,9 @@ def test_config_file_not_found() -> None:
 @pytest.fixture(autouse=True)
 def cleanup(request: pytest.FixtureRequest) -> None:
     """Clean up temporary files after tests."""
+
     def _cleanup() -> None:
         if "DEEPSEEK_API_KEY" in os.environ:
             del os.environ["DEEPSEEK_API_KEY"]
+
     request.addfinalizer(_cleanup)

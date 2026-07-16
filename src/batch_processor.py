@@ -74,9 +74,7 @@ class BatchProcessor:
                 )
             return [], set()
 
-    def save_checkpoint(
-        self, path: str, results: list[dict[str, Any]]
-    ) -> None:
+    def save_checkpoint(self, path: str, results: list[dict[str, Any]]) -> None:
         """Save a checkpoint — stores only metadata, no raw text.
 
         Args:
@@ -95,9 +93,7 @@ class BatchProcessor:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(compact, f, ensure_ascii=False, indent=2)
 
-    def _label_row(
-        self, row_id: str, text: str
-    ) -> dict[str, Any]:
+    def _label_row(self, row_id: str, text: str) -> dict[str, Any]:
         """Analyze a single row of text via the LLM.
 
         Then applies fallback classification.
@@ -169,14 +165,16 @@ class BatchProcessor:
         for _, row in df_source.iterrows():
             rid = str(row[id_col])
             result = result_map.get(rid, {})
-            output.append({
-                id_col: rid,
-                text_col: row[text_col],
-                "keywords": result.get("keywords", ""),
-                "sentiment_score": result.get("sentiment_score", -1),
-                "sentiment_reason": result.get("sentiment_reason", ""),
-                "complaint_type": result.get("complaint_type", ""),
-            })
+            output.append(
+                {
+                    id_col: rid,
+                    text_col: row[text_col],
+                    "keywords": result.get("keywords", ""),
+                    "sentiment_score": result.get("sentiment_score", -1),
+                    "sentiment_reason": result.get("sentiment_reason", ""),
+                    "complaint_type": result.get("complaint_type", ""),
+                }
+            )
         return output
 
     def run(self) -> str:
@@ -201,9 +199,7 @@ class BatchProcessor:
         new_results: list[dict[str, Any]] = []
 
         # Filter already processed records
-        df_filtered = df[
-            ~df[self.config.id_column].astype(str).isin(processed_ids)
-        ]
+        df_filtered = df[~df[self.config.id_column].astype(str).isin(processed_ids)]
 
         if self.logger:
             self.logger.info(
@@ -238,16 +234,16 @@ class BatchProcessor:
                         pbar.set_postfix_str(f"Latest: {text[:20]}...")
                     except Exception as exc:
                         if self.logger:
-                            self.logger.error(
-                                f"Failed to process ID={row_id}: {exc}"
-                            )
-                        batch_results.append({
-                            self.config.id_column: row_id,
-                            "keywords": "",
-                            "sentiment_score": -1,
-                            "sentiment_reason": f"Processing failed: {exc}",
-                            "complaint_type": "",
-                        })
+                            self.logger.error(f"Failed to process ID={row_id}: {exc}")
+                        batch_results.append(
+                            {
+                                self.config.id_column: row_id,
+                                "keywords": "",
+                                "sentiment_score": -1,
+                                "sentiment_reason": f"Processing failed: {exc}",
+                                "complaint_type": "",
+                            }
+                        )
                     pbar.update(1)
 
                 # Save this batch's results
@@ -258,14 +254,10 @@ class BatchProcessor:
         # Merge results with original CSV and write output
         all_results = existing_results + new_results
         output_rows = self._build_output_rows(all_results)
-        output_path = self._write_output(
-            self.config.data_output, output_rows
-        )
+        output_path = self._write_output(self.config.data_output, output_rows)
 
         if self.logger:
-            self.logger.info(
-                f"Processing complete! Total {len(all_results)} records"
-            )
+            self.logger.info(f"Processing complete! Total {len(all_results)} records")
             self.logger.info(f"Output file: {output_path}")
 
         # Generate summary report
@@ -273,9 +265,7 @@ class BatchProcessor:
 
         return output_path
 
-    def _write_output(
-        self, path: str, rows: list[dict[str, Any]]
-    ) -> str:
+    def _write_output(self, path: str, rows: list[dict[str, Any]]) -> str:
         """Write result rows to CSV.
 
         Args:

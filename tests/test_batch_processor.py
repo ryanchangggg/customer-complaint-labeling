@@ -53,21 +53,31 @@ def mock_api_client() -> MagicMock:
     """Provide a mock API client that returns 5 preset results in order."""
     client = MagicMock()
     results = [
-        {"keywords": ["Refund", "Complaint"],
+        {
+            "keywords": ["Refund", "Complaint"],
             "sentiment_score": 8,
-            "reason": "User is dissatisfied with refund speed"},
-        {"keywords": ["Satisfied"],
+            "reason": "User is dissatisfied with refund speed",
+        },
+        {
+            "keywords": ["Satisfied"],
             "sentiment_score": 0,
-            "reason": "User expresses satisfaction"},
-        {"keywords": ["Poor Service"],
+            "reason": "User expresses satisfaction",
+        },
+        {
+            "keywords": ["Poor Service"],
             "sentiment_score": 8,
-            "reason": "User complains about poor service"},
-        {"keywords": ["Slow Updates"],
+            "reason": "User complains about poor service",
+        },
+        {
+            "keywords": ["Slow Updates"],
             "sentiment_score": 5,
-            "reason": "User complains about slow updates"},
-        {"keywords": ["Satisfied"],
+            "reason": "User complains about slow updates",
+        },
+        {
+            "keywords": ["Satisfied"],
             "sentiment_score": 0,
-            "reason": "User is satisfied with quality"},
+            "reason": "User is satisfied with quality",
+        },
     ]
     client.analyze.side_effect = results
     return client
@@ -92,15 +102,18 @@ def test_load_checkpoint_some(mock_config: Config, temp_dir: str) -> None:
     checkpoint_path = mock_config.data_checkpoint
     checkpoint_data = [
         {
-            "id": "1", "text": "test",
-            "keywords": "Refund", "sentiment_score": 8,
-            "sentiment_reason": "reason"
+            "id": "1",
+            "text": "test",
+            "keywords": "Refund",
+            "sentiment_score": 8,
+            "sentiment_reason": "reason",
         },
         {
-            "id": "2", "text": "test2",
+            "id": "2",
+            "text": "test2",
             "keywords": "Satisfied",
             "sentiment_score": 0,
-            "sentiment_reason": "good"
+            "sentiment_reason": "good",
         },
     ]
     with open(checkpoint_path, "w", encoding="utf-8") as f:
@@ -114,7 +127,9 @@ def test_load_checkpoint_some(mock_config: Config, temp_dir: str) -> None:
 
 
 def test_run_basic(
-    mock_config: Config, mock_api_client: MagicMock, prompt_mgr: PromptManager,
+    mock_config: Config,
+    mock_api_client: MagicMock,
+    prompt_mgr: PromptManager,
 ) -> None:
     """Test the basic run flow."""
     processor = BatchProcessor(mock_config, mock_api_client, prompt_mgr)
@@ -122,12 +137,17 @@ def test_run_basic(
     assert os.path.exists(output_path)
 
     import pandas as pd
+
     df = pd.read_csv(output_path)
     assert len(df) == 5
     assert list(df.columns) == [
-            "id", "text", "keywords", "sentiment_score",
-            "sentiment_reason", "complaint_type",
-        ]
+        "id",
+        "text",
+        "keywords",
+        "sentiment_score",
+        "sentiment_reason",
+        "complaint_type",
+    ]
 
     row1 = df[df["id"].astype(str) == "1"].iloc[0]
     assert "Refund" in str(row1["keywords"])
@@ -138,7 +158,9 @@ def test_run_basic(
 
 
 def test_run_checkpoint_resume(
-    mock_config: Config, prompt_mgr: PromptManager, temp_dir: str,
+    mock_config: Config,
+    prompt_mgr: PromptManager,
+    temp_dir: str,
 ) -> None:
     """Test checkpoint resume functionality.
 
@@ -146,15 +168,21 @@ def test_run_checkpoint_resume(
     """
     api_client = MagicMock()
     api_client.analyze.side_effect = [
-        {"keywords": ["Poor Service"],
+        {
+            "keywords": ["Poor Service"],
             "sentiment_score": 8,
-            "reason": "User complains about poor service"},
-        {"keywords": ["Slow Updates"],
+            "reason": "User complains about poor service",
+        },
+        {
+            "keywords": ["Slow Updates"],
             "sentiment_score": 5,
-            "reason": "User complains about slow updates"},
-        {"keywords": ["Satisfied"],
+            "reason": "User complains about slow updates",
+        },
+        {
+            "keywords": ["Satisfied"],
             "sentiment_score": 0,
-            "reason": "User is satisfied with quality"},
+            "reason": "User is satisfied with quality",
+        },
     ]
 
     checkpoint_path = mock_config.data_checkpoint
@@ -181,6 +209,7 @@ def test_run_checkpoint_resume(
     output_path = processor.run()
 
     import pandas as pd
+
     df = pd.read_csv(output_path)
 
     # Output should contain all 5 records

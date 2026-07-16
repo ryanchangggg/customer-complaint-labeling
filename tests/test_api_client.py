@@ -21,21 +21,27 @@ def config() -> Config:
 @pytest.fixture
 def valid_json_response() -> str:
     """Provide a valid API JSON response."""
-    return json.dumps({
-        "keywords": ["Course Quality", "Complaint"],
-        "sentiment_score": 8,
-        "reason": "User is very dissatisfied with the course content quality",
-    }, ensure_ascii=False)
+    return json.dumps(
+        {
+            "keywords": ["Course Quality", "Complaint"],
+            "sentiment_score": 8,
+            "reason": "User is very dissatisfied with the course content quality",
+        },
+        ensure_ascii=False,
+    )
 
 
 @pytest.fixture
 def markdown_json_response() -> str:
     """Provide an API response wrapped in a markdown code block."""
-    content = json.dumps({
-        "keywords": ["Slow Updates"],
-        "sentiment_score": 5,
-        "reason": "User complains about slow data updates",
-    }, ensure_ascii=False)
+    content = json.dumps(
+        {
+            "keywords": ["Slow Updates"],
+            "sentiment_score": 5,
+            "reason": "User complains about slow data updates",
+        },
+        ensure_ascii=False,
+    )
     return f"```json\n{content}\n```"
 
 
@@ -94,13 +100,13 @@ def test_analyze_markdown_response(
 
 
 @patch("src.api_client.OpenAI")
-def test_analyze_missing_fields(
-    mock_openai: MagicMock, config: Config
-) -> None:
+def test_analyze_missing_fields(mock_openai: MagicMock, config: Config) -> None:
     """Test fallback when response is missing fields."""
-    incomplete_json = json.dumps({
-        "keywords": ["Complaint"],
-    })
+    incomplete_json = json.dumps(
+        {
+            "keywords": ["Complaint"],
+        }
+    )
 
     mock_completion = MagicMock()
     mock_choice = MagicMock()
@@ -122,9 +128,7 @@ def test_analyze_missing_fields(
 
 
 @patch("src.api_client.OpenAI")
-def test_analyze_invalid_json(
-    mock_openai: MagicMock, config: Config
-) -> None:
+def test_analyze_invalid_json(mock_openai: MagicMock, config: Config) -> None:
     """Test behavior when JSON parsing fails."""
     mock_completion = MagicMock()
     mock_choice = MagicMock()

@@ -41,7 +41,7 @@ class Config:
         if not key or key == "sk-your-deepseek-api-key-here":
             raise ValueError(
                 "DEEPSEEK_API_KEY is not set. "
-            "Please configure a valid API Key in the .env file."
+                "Please configure a valid API Key in the .env file."
             )
         return key
 

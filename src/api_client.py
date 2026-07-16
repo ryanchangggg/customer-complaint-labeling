@@ -123,9 +123,11 @@ class DeepSeekClient:
                 if logger:
                     logger.error(f"API call failed: {exc}")
                 # Return default values to mark the failure
-                results.append({
-                    "keywords": [],
-                    "sentiment_score": -1,
-                    "reason": f"API call failed: {exc}",
-                })
+                results.append(
+                    {
+                        "keywords": [],
+                        "sentiment_score": -1,
+                        "reason": f"API call failed: {exc}",
+                    }
+                )
         return results

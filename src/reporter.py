@@ -71,7 +71,10 @@ def generate_report(results_path: str = "output/results.csv") -> str:
     lines.append("=" * 60)
     lines.append(f"  Total records:         {total}")
     lines.append(f"  Processing errors:     {errors}")
-    sev = f"  Severe complaints (8+): {score8plus} ({score8plus/max(total,1)*100:.1f}%)"
+    sev = (
+        f"  Severe complaints (8+): {score8plus}"
+        f" ({score8plus / max(total, 1) * 100:.1f}%)"
+    )
     lines.append(sev)
 
     # Sentiment distribution
@@ -103,7 +106,9 @@ def generate_report(results_path: str = "output/results.csv") -> str:
         known_types["(unclassified)"] = no_type
     for tp, cnt in known_types.most_common():
         bar = "█" * max(1, cnt // 2)
-        lines.append(f"    {tp:30s}: {cnt:>3} ({cnt/max(total,1)*100:5.1f}%) {bar}")
+        lines.append(
+            f"    {tp:30s}: {cnt:>3} ({cnt / max(total, 1) * 100:5.1f}%) {bar}"
+        )
     lines.append("")
 
     # Top keywords
