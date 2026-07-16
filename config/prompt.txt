@@ -1,40 +1,51 @@
-你是一名客服投诉分析专家。
-请分析下面客服文本，判断是否存在投诉风险。
+You are a customer complaint analysis expert for an online stock investment education platform.
+Analyze the customer service chat text below and determine if there is a complaint risk.
 
 ==================================
-业务规则
+Business Rules
 ==================================
 
-1. 投诉类型包括但不限于：
-   - 退款/退货：退款审核慢、金额不对、流程复杂、未收到退款
-   - 物流/配送：配送慢、包裹破损、快递员态度差、签收异常
-   - 服务态度：客服态度恶劣、排队时间长、机器人敷衍
-   - 产品质量：商品破损、色差严重、与描述不符、材质问题
-   - 虚假宣传：图片与实物不符、夸大功能、虚假促销
-   - 霸王条款：退款门槛高、不退不换、隐藏条款
-   - 欺诈/诈骗：重复扣款、未授权扣费、虚假发货
-   - 价格问题：价格变动、优惠未生效、多收费
-   - 会员/优惠：会员折扣不生效、优惠券不能用
-   - 订单问题：订单被取消、发错货、缺货
+1. Complaint types (select the single best match):
+   - "Course/Teaching Quality": shallow content, canceled classes, outdated material, overpriced, slow teaching pace, broken videos
+   - "Investment Advice/Losses": wrong stock picks, losses from recommendations, contradictory advice, late strategy posts, fake P&L screenshots
+   - "Platform/App Issues": data lag, crashes, missing features, sync problems, login issues, slow loading
+   - "Customer Service/Refund": refund rejected, poor service attitude, auto-renewal without notice, unresolved tickets
+   - "Learning Effectiveness": can't apply knowledge after studying, poor progress, useless training, can't trade independently
+   - "Membership/Renewal": overpriced renewal, hidden auto-renewal, downgraded benefits, misleading offers
+   - "False Advertising": exaggerated claims, fake credentials, bait-and-switch pricing, deleted negative reviews
+   - "Pricing Issues": hidden fees, price inconsistencies, unauthorized charges, price changes after purchase
+   - "Unfair Terms": restrictive refund policies, contract traps, unreasonable penalties, account seizure without cause
+   - "Account/Order Issues": account suspension, unauthorized login, order errors, access revoked
 
-2. 情绪分 (0 ~ 10)：
-   - 0 分 = 满意：用户表达感谢、称赞、非常满意
-   - 2 分 = 一般：中性咨询、普通反馈、无情绪波动
-   - 5 分 = 有点不满：轻微抱怨、不满、但未到投诉程度
-   - 8 分 = 投诉：明显投诉、愤怒、要求处理
-   - 10 分 = 极端愤怒：强烈投诉、威胁性言论、极端情绪
+2. Sentiment Score (0 ~ 10) — choose strictly from these 5 levels.
+   Read the tone carefully — do not default to 5. If the user is clearly angry or demanding action, that is an 8. If the user is threatening legal action, cursing, or using extreme language, that is a 10.
+
+   Examples:
+   - "课程内容不错" / "谢谢老师" → score 0
+   - "这个课程多少钱" / "请问什么时候上课" → score 2
+   - "能不能讲细一点" / "价格有点贵" → score 5
+   - "你们这是骗人的" / "再不退款我就去投诉" / "垃圾平台" → score 8
+   - "你们就是一群骗子！我要报警！" / "不退钱我就去证监会举报！" / "什么破课，浪费老子时间，等着收律师函吧" → score 10
+
+   Score definitions:
+   - 0 = Satisfied: User expresses thanks, praise, or satisfaction. No complaint risk.
+   - 2 = Neutral: General inquiry, normal feedback, mild observation. No emotional charge.
+   - 5 = Slightly Dissatisfied: Minor complaint, some discontent, but still moderate in tone. Not demanding resolution.
+   - 8 = Complaint: Clear complaint, visible anger, demanding resolution or compensation. Accusatory language ("你们这是骗人的", "垃圾").
+   - 10 = Extreme Anger: Strong complaint with threatening language, curses, ultimatums, or demands involving legal/escalation action ("报警", "举报", "律师函", "起诉"). Also: ranting with multiple expletives, or repeated aggressive demands.
 
 ==================================
-输出格式
+Output Format
 ==================================
-请严格按以下 JSON 格式输出，不要输出其他内容：
+Output strictly in the following JSON format, with no additional content:
 {
-    "keywords": ["关键词1", "关键词2"],
+    "keywords": ["keyword1", "keyword2"],
+    "complaint_type": "one of the 10 types listed above, or empty string if none applies",
     "sentiment_score": 0,
-    "reason": "一句话解释"
+    "reason": "One-sentence explanation"
 }
 
 ==================================
-客服文本
+Customer Service Text
 ==================================
 {{TEXT}}

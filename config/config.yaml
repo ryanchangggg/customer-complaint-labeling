@@ -1,15 +1,15 @@
 # ============================================================
-# 客服投诉标签系统 - 配置文件
+# Customer Complaint Labeling System - Configuration
 # ============================================================
 
-# --- DeepSeek API 配置 ---
+# --- DeepSeek API Configuration ---
 api:
   base_url: "https://api.deepseek.com"
   model: "deepseek-chat"
   temperature: 0.1
   max_tokens: 512
 
-# --- 输入输出 ---
+# --- Input / Output ---
 data:
   input: "data/sample_chat.csv"
   output: "output/results.csv"
@@ -17,43 +17,43 @@ data:
   id_column: "id"
   text_column: "text"
 
-# --- 批处理 ---
+# --- Batch Processing ---
 batch:
   size: 20
   rate_limit: 5.0
   min_interval: 0.2
 
-# --- 重试策略 ---
+# --- Retry Strategy ---
 retry:
   max_attempts: 3
   min_wait: 2
   max_wait: 30
 
-# --- 日志 ---
+# --- Logging ---
 logging:
   level: "INFO"
   file: "logs/labeling.log"
   format: "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
 
 # ============================================================
-# 业务规则
+# Business Rules
 # ============================================================
 rules:
   complaint_types:
-    - "退款/退货"
-    - "物流/配送"
-    - "服务态度"
-    - "产品质量"
-    - "虚假宣传"
-    - "霸王条款"
-    - "欺诈/诈骗"
-    - "价格问题"
-    - "会员/优惠"
-    - "订单问题"
+    - "Course/Teaching Quality"
+    - "Investment Advice/Losses"
+    - "Platform/App Issues"
+    - "Customer Service/Refund"
+    - "Learning Effectiveness"
+    - "Membership/Renewal"
+    - "False Advertising"
+    - "Pricing Issues"
+    - "Unfair Terms"
+    - "Account/Order Issues"
 
   sentiment_levels:
-    0: "满意 - 用户表达感谢或满意"
-    2: "一般 - 中性咨询或普通反馈"
-    5: "有点不满 - 轻微抱怨或不满"
-    8: "投诉 - 明显投诉或愤怒"
-    10: "极端愤怒 - 强烈投诉或威胁性言论"
+    0: "Satisfied - User expresses thanks or satisfaction"
+    2: "Neutral - General inquiry or normal feedback"
+    5: "Slightly Dissatisfied - Mild complaint or discontent"
+    8: "Complaint - Significant complaint or anger"
+    10: "Extreme Anger - Strong complaint or threatening remarks"

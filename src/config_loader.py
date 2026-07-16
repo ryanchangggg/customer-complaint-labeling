@@ -1,4 +1,4 @@
-"""配置加载模块"""
+"""Configuration loading module"""
 
 import os
 from pathlib import Path
@@ -11,23 +11,23 @@ from src.utils import get_project_root
 
 
 class Config:
-    """全局配置类，封装 config.yaml 和 .env 的加载。"""
+    """Global configuration class that wraps config.yaml and .env loading."""
 
     def __init__(self, config_path: str | Path | None = None) -> None:
-        """初始化配置。
+        """Initialize configuration.
 
         Args:
-            config_path: config.yaml 路径，默认为 config/config.yaml。
+            config_path: Path to config.yaml, defaults to config/config.yaml.
         """
         root = get_project_root()
         self._root = root
 
-        # 加载 .env
+        # Load .env
         dotenv_path = root / ".env"
         if dotenv_path.exists():
             load_dotenv(dotenv_path)
 
-        # 加载 config.yaml
+        # Load config.yaml
         if config_path is None:
             config_path = root / "config" / "config.yaml"
         with open(config_path, "r", encoding="utf-8") as f:
@@ -35,11 +35,11 @@ class Config:
 
     @property
     def api_key(self) -> str:
-        """DeepSeek API Key。"""
+        """DeepSeek API Key."""
         key = os.getenv("DEEPSEEK_API_KEY", "")
         if not key or key == "sk-your-deepseek-api-key-here":
             raise ValueError(
-                "DEEPSEEK_API_KEY 未设置。请在 .env 文件中配置有效的 API Key。"
+                "DEEPSEEK_API_KEY is not set. Please configure a valid API Key in the .env file."
             )
         return key
 
@@ -125,14 +125,14 @@ class Config:
         return {int(k): v for k, v in raw.items()}
 
     def get(self, key: str, default: Any = None) -> Any:
-        """通过点号分隔的路径获取配置值。
+        """Get a config value by dot-separated path.
 
         Args:
-            key: 配置键路径，如 "api.base_url"。
-            default: 未找到时的默认值。
+            key: Config key path, e.g. "api.base_url".
+            default: Default value if key is not found.
 
         Returns:
-            配置值。
+            Config value.
         """
         keys = key.split(".")
         value = self._raw

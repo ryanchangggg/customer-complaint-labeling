@@ -1,158 +1,220 @@
-# 客服投诉标签系统
+# Customer Complaint Labeling System
 
-基于 DeepSeek API 的智能投诉标签工具，自动从客服聊天记录中提取投诉关键词、评估用户情绪分数并生成解释。
+An intelligent complaint labeling tool powered by the DeepSeek API, automatically extracting complaint keywords from customer service chat logs, evaluating user sentiment scores, generating explanations, and producing a summary report.
 
-## 项目背景
+[![CI](https://github.com/ryanchangggg/customer-complaint-labeling/actions/workflows/ci.yml/badge.svg)](https://github.com/ryanchangggg/customer-complaint-labeling/actions/workflows/ci.yml)
 
-客服聊天记录中蕴含着大量高价值信息，传统人工标注方式成本高、效率低。本项目采用大模型 + Prompt 的方法，自动化完成文本标注，覆盖投诉风险识别、情绪评估等场景。
+## Project Background
 
-支持 42 万条文本在数小时内批量处理完毕，关键词识别准确率约 90%，情绪解读准确率约 80%。
+Customer service chat logs contain a wealth of high-value information. Traditional manual labeling is costly and inefficient. This project uses an LLM + Prompt approach to automate text labeling, covering complaint risk identification, sentiment assessment, and more.
 
-## 功能特性
+Supports batch processing of hundreds of thousands of records within hours, with ~90% keyword recognition accuracy and ~80% sentiment interpretation accuracy.
 
-- **投诉关键词提取** — 自动识别 10 类投诉类型（退款、物流、服务态度等）
-- **情绪评分（0~10）** — 从满意到极端愤怒的分级评估
-- **情绪解读** — 对每条文本生成一句解释说明
-- **批量处理** — 支持大规模 CSV 文件批处理
-- **断点续跑** — 处理中断后可从中断点继续运行，不丢数据
-- **自动重试** — API 调用失败自动指数退避重试
-- **速率控制** — 可配置的请求频率限制
-- **日志记录** — 详细的运行日志，便于排查问题
+## Features
 
-## 项目结构
+- **Complaint Keyword Extraction** — Automatically identifies 10 complaint categories (course quality, investment advice, platform issues, etc.)
+- **Structured Complaint Type** — Each record is classified into one of 10 predefined complaint types, with keyword-based fallback when the LLM returns an unrecognized type
+- **Sentiment Score (0~10)** — Graded assessment from satisfied to extreme anger
+- **Sentiment Explanation** — Generates a one-sentence explanation for each record
+- **Summary Report** — After processing, an `output/report.txt` is generated with complaint type distribution, sentiment breakdown, and top keywords
+- **Batch Processing** — Supports large-scale CSV file processing
+- **Checkpoint Resumption** — Resumes from breakpoints after interruption without data loss (checkpoint stores only metadata, no raw text — 60%+ smaller on large datasets)
+- **Auto Retry** — Automatic exponential backoff retry on API failures
+- **Rate Control** — Configurable request rate limiting
+- **Logging** — Detailed runtime logs for troubleshooting
+
+## Project Structure
 
 ```
 customer-complaint-labeling/
+├── .github/workflows/
+│   └── ci.yml               # GitHub Actions: lint + format-check + mypy + pytest (3.11–3.13)
 ├── config/
-│   ├── config.yaml       # 全局配置文件
-│   └── prompt.txt         # Prompt 模板
+│   ├── config.yaml           # Global configuration
+│   └── prompt.txt            # Prompt template
 ├── data/
-│   ├── raw/               # 原始数据目录
-│   ├── processed/         # 处理后数据目录
-│   └── sample_chat.csv    # 测试数据集 (1000条)
-├── logs/                  # 运行日志
-├── output/                # 输出结果
+│   └── sample_chat.csv       # Test dataset (500 records)
+├── logs/                     # Runtime logs
+├── output/                   # Output results + summary report
 ├── src/
 │   ├── __init__.py
-│   ├── main.py            # 主入口
-│   ├── config_loader.py   # 配置加载
-│   ├── prompt_manager.py  # Prompt 管理
-│   ├── api_client.py      # DeepSeek API 客户端
-│   ├── batch_processor.py # 批量处理 (断点续跑)
-│   └── utils.py           # 工具函数
+│   ├── main.py               # Main entry point
+│   ├── config_loader.py      # Configuration loader
+│   ├── prompt_manager.py     # Prompt management
+│   ├── api_client.py         # DeepSeek API client
+│   ├── classifier.py         # Keyword-based fallback classifier
+│   ├── batch_processor.py    # Batch processing (checkpoint resume)
+│   ├── reporter.py           # Summary report generator
+│   └── utils.py              # Utility functions
 ├── tests/
 │   ├── __init__.py
 │   ├── test_config_loader.py
 │   ├── test_api_client.py
 │   └── test_batch_processor.py
-├── .env                   # API Key (需自行配置)
+├── .env                      # API Key (configure manually)
 ├── .gitignore
+├── Makefile                  # run / test / lint / format / clean
+├── pyproject.toml            # Project config + ruff + mypy + pytest
 ├── requirements.txt
 └── README.md
 ```
 
-## 快速开始
+## Quick Start
 
-### 1. 安装依赖
+### 1. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. 配置 API Key
+### 2. Configure API Key
 
-编辑 `.env` 文件，填入你的 DeepSeek API Key：
+Edit the `.env` file and fill in your DeepSeek API Key:
 
 ```
 DEEPSEEK_API_KEY=sk-your-deepseek-api-key-here
 ```
 
-### 3. 准备数据
+### 3. Prepare Data
 
-将客服聊天记录保存为 CSV 格式，放在 `data/` 目录下。默认测试数据为 `data/sample_chat.csv`。
+Save customer service chat records as CSV format in the `data/` directory. The default test data is `data/sample_chat.csv`.
 
-输入格式：
+Input format:
 
 | id | text |
 |----|------|
 | 1  | 为什么一直没人处理我的退款？ |
 | 2  | 谢谢客服，很满意。 |
 
-### 4. 运行
+### 4. Run
 
 ```bash
-# 使用默认配置
+# Use default configuration
 python -m src.main
 
-# 指定输入输出文件
+# Specify input and output files
 python -m src.main --input data/custom.csv --output output/custom_results.csv
 
-# 调整批大小
+# Adjust batch size
 python -m src.main --batch-size 10
 
-# 指定日志级别
+# Specify log level
 python -m src.main --log-level DEBUG
+
+# Or use the Makefile
+make run
 ```
 
-### 5. 查看结果
+### 5. View Results
 
-输出文件位于 `output/results.csv`，格式如下：
+The output file is located at `output/results.csv`, with the following format:
 
-| id | text | keywords | sentiment_score | sentiment_reason |
-|----|------|----------|----------------|-----------------|
-| 1  | 为什么一直没人处理我的退款？ | 退款;投诉 | 8 | 用户对于退款速度非常不满 |
-| 2  | 谢谢客服，很满意。 | 满意;感谢 | 0 | 用户表达满意 |
+| id | text | keywords | sentiment_score | sentiment_reason | complaint_type |
+|----|------|----------|----------------|-----------------|----------------|
+| 1  | 会员等级降级了也没人通知 | 会员等级降级;未通知 | 5 | 用户反映会员等级降级未收到通知... | Membership/Renewal |
+| 2  | 每日一股有一半以上当天是跌的 | 每日一股;一半以上;当天跌 | 5 | 用户指出推荐的股票超过一半下跌... | Investment Advice/Losses |
 
-## 业务规则
+A **summary report** is also generated at `output/report.txt`:
 
-### 投诉类型
+```
+Sentiment Score Distribution:
+   0 (Satisfied             ): 107 ( 21.4%)
+   2 (Neutral               ):  30 (  6.0%)
+   5 (Slightly Dissatisfied ): 294 ( 58.8%)
+   8 (Complaint             ):  69 ( 13.8%)
+  10 (Extreme Anger         ):   0 (  0.0%)
 
-| 类别 | 说明 |
-|------|------|
-| 退款/退货 | 退款审核慢、金额不对、流程复杂 |
-| 物流/配送 | 配送慢、包裹破损、快递员态度差 |
-| 服务态度 | 客服恶劣、排队久、机器人敷衍 |
-| 产品质量 | 商品破损、色差、描述不符 |
-| 虚假宣传 | 图片不符、夸大功能 |
-| 霸王条款 | 退款门槛高、不退不换 |
-| 欺诈/诈骗 | 重复扣款、虚假发货 |
-| 价格问题 | 价格变动、多收费 |
-| 会员/优惠 | 折扣不生效、优惠券不能用 |
-| 订单问题 | 订单取消、发错货 |
+Complaint Type Distribution:
+  Course/Teaching Quality       : 163 ( 32.6%)
+  Investment Advice/Losses      :  83 ( 16.6%)
+  Platform/App Issues           :  65 ( 13.0%)
+  Customer Service/Refund       :  41 (  8.2%)
+  False Advertising             :  33 (  6.6%)
+  Learning Effectiveness        :  23 (  4.6%)
+  Membership/Renewal            :  10 (  2.0%)
+  Pricing Issues                :  10 (  2.0%)
+  Account/Order Issues          :   7 (  1.4%)
+  Unfair Terms                  :   5 (  1.0%)
+```
 
-### 情绪分定义
+## Business Rules
 
-| 分数 | 含义 |
-|------|------|
-| 0 | 满意 - 表达感谢或满意 |
-| 2 | 一般 - 中性咨询或普通反馈 |
-| 5 | 有点不满 - 轻微抱怨 |
-| 8 | 投诉 - 明显投诉或愤怒 |
-| 10 | 极端愤怒 - 强烈投诉或威胁性言论 |
+### Complaint Types
 
-## 自定义配置
+| Category | Description |
+|----------|-------------|
+| Course/Teaching Quality | Shallow content, canceled classes, outdated material, overpriced |
+| Investment Advice/Losses | Wrong stock picks, losses from recommendations, contradictory advice |
+| Platform/App Issues | Data lag, crashes, missing features, sync problems |
+| Customer Service/Refund | Refund rejected, poor service attitude, auto-renewal issues |
+| Learning Effectiveness | Can't apply knowledge, poor progress, useless training |
+| Membership/Renewal | Overpriced renewal, downgraded benefits, misleading offers |
+| False Advertising | Exaggerated claims, fake credentials, bait-and-switch |
+| Pricing Issues | Hidden fees, price inconsistencies, unauthorized charges |
+| Unfair Terms | Restrictive refund policies, contract traps |
+| Account/Order Issues | Account suspension, unauthorized charges, order errors |
 
-- **修改 Prompt**：编辑 `config/prompt.txt`，可调整分析规则和输出格式
-- **修改业务规则**：编辑 `config/config.yaml` 中的 `rules` 部分
-- **调整 API 参数**：编辑 `config/config.yaml` 中的 `api` 部分
+### Sentiment Score Definitions
 
-## 运行测试
+| Score | Meaning |
+|-------|---------|
+| 0 | Satisfied - User expresses thanks or satisfaction |
+| 2 | Neutral - General inquiry or normal feedback |
+| 5 | Slightly Dissatisfied - Mild complaint or discontent |
+| 8 | Complaint - Significant complaint or anger |
+| 10 | Extreme Anger - Strong complaint or threatening remarks |
+
+## Custom Configuration
+
+- **Modify Prompt**: Edit `config/prompt.txt` to adjust analysis rules and output format
+- **Modify Business Rules**: Edit the `rules` section in `config/config.yaml`
+- **Adjust API Parameters**: Edit the `api` section in `config/config.yaml`
+
+## Development
+
+### Makefile
+
+The project includes a `Makefile` for common operations:
 
 ```bash
-# 运行全部测试
-pytest tests/ -v
-
-# 带覆盖率报告
-pytest tests/ --cov=src -v
+make run        # Run the labeling pipeline
+make test       # Run tests with coverage
+make lint       # Ruff lint check
+make format     # Ruff auto-format
+make clean      # Remove output, logs, cache
+make install    # Install dependencies + dev tools
 ```
 
-## 技术栈
+### Testing
 
-- Python 3.11+
-- DeepSeek API (OpenAI 兼容接口)
-- Pandas / PyYAML / python-dotenv
-- Tenacity (重试) / tqdm (进度条) / pytest (测试)
+```bash
+# Run all tests
+make test
 
-## 许可
+# Quick run (no coverage)
+python -m pytest tests/ -v
+
+# With coverage report
+python -m pytest tests/ --cov=src --cov-report=term
+```
+
+### Linting & Type Checking
+
+```bash
+make lint        # ruff check
+make format      # ruff format
+make typecheck   # mypy
+```
+
+## Tech Stack
+
+- **Python 3.11+**
+- **DeepSeek API** (OpenAI-compatible interface)
+- **Pandas** / **PyYAML** / **python-dotenv** — data & config
+- **Tenacity** (retry) / **tqdm** (progress bar) / **pytest** (testing)
+- **Ruff** (linter + formatter) / **Mypy** (type checker)
+- **GitHub Actions** (CI across 3.11–3.13)
+
+## License
 
 MIT

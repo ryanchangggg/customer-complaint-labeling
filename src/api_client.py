@@ -1,4 +1,4 @@
-"""DeepSeek API 客户端模块"""
+"""DeepSeek API client module"""
 
 import json
 import time
@@ -17,13 +17,13 @@ from src.config_loader import Config
 
 
 class DeepSeekClient:
-    """DeepSeek API 客户端，封装 API 调用和重试逻辑。"""
+    """DeepSeek API client that wraps API calls and retry logic."""
 
     def __init__(self, config: Config) -> None:
-        """初始化客户端。
+        """Initialize the client.
 
         Args:
-            config: 全局配置对象。
+            config: Global configuration object.
         """
         self._config = config
         self._client = OpenAI(
@@ -33,7 +33,7 @@ class DeepSeekClient:
         self._last_request_time = 0.0
 
     def _rate_limit_wait(self) -> None:
-        """速率限制：确保调用间隔不小于配置值。"""
+        """Rate limiting: ensure the interval between calls is at least the configured minimum."""
         elapsed = time.time() - self._last_request_time
         min_gap = self._config.min_interval
         if elapsed < min_gap:
@@ -46,18 +46,18 @@ class DeepSeekClient:
         reraise=True,
     )
     def analyze(self, prompt: str, logger: Any = None) -> dict[str, Any]:
-        """调用 DeepSeek API 分析单条文本。
+        """Call the DeepSeek API to analyze a single text.
 
         Args:
-            prompt: 完整 Prompt 文本。
-            logger: Logger 实例，用于记录重试日志。
+            prompt: The complete prompt text.
+            logger: Logger instance for recording retry logs.
 
         Returns:
-            解析后的 JSON 响应，包含 keywords、sentiment_score、reason。
+            Parsed JSON response containing keywords, sentiment_score, reason.
 
         Raises:
-            ValueError: API 返回格式异常。
-            APIError: API 调用失败。
+            ValueError: API response format is abnormal.
+            APIError: API call failed.
         """
         self._rate_limit_wait()
 
@@ -70,15 +70,15 @@ class DeepSeekClient:
 
         self._last_request_time = time.time()
 
-        # 解析返回内容
+        # Parse response content
         content = response.choices[0].message.content.strip()
 
-        # 清理可能的 markdown 代码块标记
+        # Clean possible markdown code block markers
         if content.startswith("```"):
             lines = content.splitlines()
-            # 去掉第一行 (```json / ```)
+            # Remove first line (```json / ```)
             lines = lines[1:]
-            # 去掉最后一行 (```)
+            # Remove last line (```)
             if lines and lines[-1].strip() == "```":
                 lines = lines[:-1]
             content = "\n".join(lines).strip()
@@ -87,10 +87,10 @@ class DeepSeekClient:
             result: dict[str, Any] = json.loads(content)
         except json.JSONDecodeError as exc:
             raise ValueError(
-                f"API 返回内容无法解析为 JSON: {content[:200]}"
+                f"API response could not be parsed as JSON: {content[:200]}"
             ) from exc
 
-        # 验证必要字段
+        # Validate required fields
         if "keywords" not in result:
             result["keywords"] = []
         if "sentiment_score" not in result:
@@ -103,14 +103,14 @@ class DeepSeekClient:
     def analyze_batch(
         self, batch_prompts: list[str], logger: Any = None
     ) -> list[dict[str, Any]]:
-        """批量分析多条文本（顺序调用，受速率限制）。
+        """Analyze multiple texts in batch (sequential calls, rate-limited).
 
         Args:
-            batch_prompts: Prompt 列表。
-            logger: Logger 实例。
+            batch_prompts: List of prompts.
+            logger: Logger instance.
 
         Returns:
-            分析结果列表。
+            List of analysis results.
         """
         results: list[dict[str, Any]] = []
         for prompt in batch_prompts:
@@ -119,11 +119,11 @@ class DeepSeekClient:
                 results.append(result)
             except Exception as exc:
                 if logger:
-                    logger.error(f"API 调用失败: {exc}")
-                # 返回默认值标记失败
+                    logger.error(f"API call failed: {exc}")
+                # Return default values to mark the failure
                 results.append({
                     "keywords": [],
                     "sentiment_score": -1,
-                    "reason": f"API 调用失败: {exc}",
+                    "reason": f"API call failed: {exc}",
                 })
         return results

@@ -1,4 +1,4 @@
-"""配置加载模块的单元测试"""
+"""Unit tests for the configuration loader module"""
 
 import os
 import tempfile
@@ -12,7 +12,7 @@ from src.config_loader import Config
 
 @pytest.fixture
 def sample_config() -> dict:
-    """提供有效的测试配置。"""
+    """Provide a valid test configuration."""
     return {
         "api": {
             "base_url": "https://api.deepseek.com",
@@ -43,13 +43,13 @@ def sample_config() -> dict:
             "format": "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
         },
         "rules": {
-            "complaint_types": ["退款/退货", "物流/配送"],
+            "complaint_types": ["Course/Teaching Quality", "Investment Advice/Losses"],
             "sentiment_levels": {
-                "0": "满意",
-                "2": "一般",
-                "5": "有点不满",
-                "8": "投诉",
-                "10": "极端愤怒",
+                "0": "Satisfied",
+                "2": "Neutral",
+                "5": "Slightly Dissatisfied",
+                "8": "Complaint",
+                "10": "Extreme Anger",
             },
         },
     }
@@ -57,7 +57,7 @@ def sample_config() -> dict:
 
 @pytest.fixture
 def config_file(sample_config: dict) -> str:
-    """创建临时配置文件并返回路径。"""
+    """Create a temporary config file and return its path."""
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".yaml", delete=False, encoding="utf-8"
     ) as f:
@@ -66,8 +66,7 @@ def config_file(sample_config: dict) -> str:
 
 
 def test_config_basic(config_file: str) -> None:
-    """测试基本配置加载。"""
-    # 需要确保 .env 中设置了 API Key
+    """Test basic configuration loading."""
     os.environ["DEEPSEEK_API_KEY"] = "sk-test-key"
     config = Config(config_file)
 
@@ -78,7 +77,7 @@ def test_config_basic(config_file: str) -> None:
 
 
 def test_config_data_paths(config_file: str) -> None:
-    """测试数据路径属性。"""
+    """Test data path properties."""
     os.environ["DEEPSEEK_API_KEY"] = "sk-test-key"
     config = Config(config_file)
 
@@ -88,7 +87,7 @@ def test_config_data_paths(config_file: str) -> None:
 
 
 def test_config_batch_settings(config_file: str) -> None:
-    """测试批处理配置。"""
+    """Test batch processing configuration."""
     os.environ["DEEPSEEK_API_KEY"] = "sk-test-key"
     config = Config(config_file)
 
@@ -98,17 +97,17 @@ def test_config_batch_settings(config_file: str) -> None:
 
 
 def test_config_rules(config_file: str) -> None:
-    """测试业务规则配置。"""
+    """Test business rules configuration."""
     os.environ["DEEPSEEK_API_KEY"] = "sk-test-key"
     config = Config(config_file)
 
-    assert "退款/退货" in config.complaint_types
-    assert config.sentiment_levels[0] == "满意"
-    assert config.sentiment_levels[8] == "投诉"
+    assert "Course/Teaching Quality" in config.complaint_types
+    assert config.sentiment_levels[0] == "Satisfied"
+    assert config.sentiment_levels[8] == "Complaint"
 
 
 def test_config_get_method(config_file: str) -> None:
-    """测试 get 方法。"""
+    """Test the get method."""
     os.environ["DEEPSEEK_API_KEY"] = "sk-test-key"
     config = Config(config_file)
 
@@ -118,8 +117,7 @@ def test_config_get_method(config_file: str) -> None:
 
 
 def test_config_api_key_missing(config_file: str) -> None:
-    """测试 API Key 缺失时的错误。"""
-    # 确保环境变量中不存在 API Key
+    """Test error when API Key is missing."""
     if "DEEPSEEK_API_KEY" in os.environ:
         del os.environ["DEEPSEEK_API_KEY"]
 
@@ -129,16 +127,15 @@ def test_config_api_key_missing(config_file: str) -> None:
 
 
 def test_config_file_not_found() -> None:
-    """测试配置文件不存在的错误。"""
+    """Test error when config file does not exist."""
     os.environ["DEEPSEEK_API_KEY"] = "sk-test-key"
     with pytest.raises(FileNotFoundError):
         Config("/nonexistent/path/config.yaml")
 
 
-# 清理临时文件
 @pytest.fixture(autouse=True)
 def cleanup(request: pytest.FixtureRequest) -> None:
-    """测试后清理临时文件。"""
+    """Clean up temporary files after tests."""
     def _cleanup() -> None:
         if "DEEPSEEK_API_KEY" in os.environ:
             del os.environ["DEEPSEEK_API_KEY"]

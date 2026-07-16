@@ -1,4 +1,4 @@
-"""批量处理模块的单元测试"""
+"""Unit tests for the batch processing module"""
 
 import csv
 import json
@@ -15,30 +15,30 @@ from src.prompt_manager import PromptManager
 
 @pytest.fixture
 def sample_csv() -> str:
-    """创建临时测试 CSV 文件。"""
+    """Create a temporary test CSV file."""
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".csv", delete=False, encoding="utf-8", newline=""
     ) as f:
         writer = csv.writer(f, quoting=csv.QUOTE_ALL)
         writer.writerow(["id", "text"])
-        writer.writerow(["1", "为什么一直没人处理我的退款？"])
-        writer.writerow(["2", "谢谢客服，很满意。"])
-        writer.writerow(["3", "你们服务太差了。"])
-        writer.writerow(["4", "物流太慢，等了一个星期。"])
-        writer.writerow(["5", "东西质量不错，好评。"])
+        writer.writerow(["1", "Why hasn't anyone handled my refund?"])
+        writer.writerow(["2", "Thank you, very satisfied."])
+        writer.writerow(["3", "Your service is terrible."])
+        writer.writerow(["4", "The data updates are too slow, waited a week."])
+        writer.writerow(["5", "Course quality is decent, good review."])
         return f.name
 
 
 @pytest.fixture
 def temp_dir() -> str:
-    """创建临时输出目录。"""
+    """Create a temporary output directory."""
     path = tempfile.mkdtemp()
     return path
 
 
 @pytest.fixture
 def mock_config(sample_csv: str, temp_dir: str) -> Config:
-    """提供 mock 配置。"""
+    """Provide a mock configuration."""
     os.environ["DEEPSEEK_API_KEY"] = "sk-test-key"
     config = Config()
     config._raw["data"]["input"] = sample_csv
@@ -50,14 +50,14 @@ def mock_config(sample_csv: str, temp_dir: str) -> Config:
 
 @pytest.fixture
 def mock_api_client() -> MagicMock:
-    """提供 mock API 客户端，按顺序返回 5 条预设结果。"""
+    """Provide a mock API client that returns 5 preset results in order."""
     client = MagicMock()
     results = [
-        {"keywords": ["退款", "投诉"], "sentiment_score": 8, "reason": "用户对退款速度不满"},
-        {"keywords": ["满意"], "sentiment_score": 0, "reason": "用户表达满意"},
-        {"keywords": ["服务差"], "sentiment_score": 8, "reason": "用户抱怨服务差"},
-        {"keywords": ["物流慢"], "sentiment_score": 5, "reason": "用户抱怨物流慢"},
-        {"keywords": ["满意"], "sentiment_score": 0, "reason": "用户对质量满意"},
+        {"keywords": ["Refund", "Complaint"], "sentiment_score": 8, "reason": "User is dissatisfied with refund speed"},
+        {"keywords": ["Satisfied"], "sentiment_score": 0, "reason": "User expresses satisfaction"},
+        {"keywords": ["Poor Service"], "sentiment_score": 8, "reason": "User complains about poor service"},
+        {"keywords": ["Slow Updates"], "sentiment_score": 5, "reason": "User complains about slow updates"},
+        {"keywords": ["Satisfied"], "sentiment_score": 0, "reason": "User is satisfied with quality"},
     ]
     client.analyze.side_effect = results
     return client
@@ -65,12 +65,12 @@ def mock_api_client() -> MagicMock:
 
 @pytest.fixture
 def prompt_mgr() -> PromptManager:
-    """提供 Prompt 管理器实例。"""
+    """Provide a PromptManager instance."""
     return PromptManager()
 
 
 def test_load_checkpoint_empty(mock_config: Config) -> None:
-    """测试空检查点。"""
+    """Test loading an empty checkpoint."""
     processor = BatchProcessor(mock_config, MagicMock(), MagicMock())
     results, processed_ids = processor.load_checkpoint("/nonexistent/checkpoint.json")
     assert results == []
@@ -78,11 +78,11 @@ def test_load_checkpoint_empty(mock_config: Config) -> None:
 
 
 def test_load_checkpoint_some(mock_config: Config, temp_dir: str) -> None:
-    """测试存在检查点。"""
+    """Test loading a checkpoint with existing data."""
     checkpoint_path = mock_config.data_checkpoint
     checkpoint_data = [
-        {"id": "1", "text": "test", "keywords": "退款", "sentiment_score": 8, "sentiment_reason": "reason"},
-        {"id": "2", "text": "test2", "keywords": "满意", "sentiment_score": 0, "sentiment_reason": "good"},
+        {"id": "1", "text": "test", "keywords": "Refund", "sentiment_score": 8, "sentiment_reason": "reason"},
+        {"id": "2", "text": "test2", "keywords": "Satisfied", "sentiment_score": 0, "sentiment_reason": "good"},
     ]
     with open(checkpoint_path, "w", encoding="utf-8") as f:
         json.dump(checkpoint_data, f, ensure_ascii=False)
@@ -97,7 +97,7 @@ def test_load_checkpoint_some(mock_config: Config, temp_dir: str) -> None:
 def test_run_basic(
     mock_config: Config, mock_api_client: MagicMock, prompt_mgr: PromptManager,
 ) -> None:
-    """测试基本运行流程。"""
+    """Test the basic run flow."""
     processor = BatchProcessor(mock_config, mock_api_client, prompt_mgr)
     output_path = processor.run()
     assert os.path.exists(output_path)
@@ -105,10 +105,10 @@ def test_run_basic(
     import pandas as pd
     df = pd.read_csv(output_path)
     assert len(df) == 5
-    assert list(df.columns) == ["id", "text", "keywords", "sentiment_score", "sentiment_reason"]
+    assert list(df.columns) == ["id", "text", "keywords", "sentiment_score", "sentiment_reason", "complaint_type"]
 
     row1 = df[df["id"].astype(str) == "1"].iloc[0]
-    assert "退款" in str(row1["keywords"])
+    assert "Refund" in str(row1["keywords"])
     assert row1["sentiment_score"] == 8
 
     row2 = df[df["id"].astype(str) == "2"].iloc[0]
@@ -118,24 +118,23 @@ def test_run_basic(
 def test_run_checkpoint_resume(
     mock_config: Config, prompt_mgr: PromptManager, temp_dir: str,
 ) -> None:
-    """测试断点续跑功能。
-    
-    检查点已有 ID 1,2 的结果，mock 只提供 3 条结果对应 ID 3,4,5。
+    """Test checkpoint resume functionality.
+
+    Checkpoint already has results for IDs 1,2. Mock provides 3 results for IDs 3,4,5.
     """
-    # 创建指定结果的 mock，匹配待处理的 3 条
     api_client = MagicMock()
     api_client.analyze.side_effect = [
-        {"keywords": ["服务差"], "sentiment_score": 8, "reason": "用户抱怨服务差"},
-        {"keywords": ["物流慢"], "sentiment_score": 5, "reason": "用户抱怨物流慢"},
-        {"keywords": ["满意"], "sentiment_score": 0, "reason": "用户对质量满意"},
+        {"keywords": ["Poor Service"], "sentiment_score": 8, "reason": "User complains about poor service"},
+        {"keywords": ["Slow Updates"], "sentiment_score": 5, "reason": "User complains about slow updates"},
+        {"keywords": ["Satisfied"], "sentiment_score": 0, "reason": "User is satisfied with quality"},
     ]
 
     checkpoint_path = mock_config.data_checkpoint
     checkpoint_data = [
-        {"id": "1", "text": "为什么一直没人处理我的退款？", "keywords": "退款;投诉",
-         "sentiment_score": 8, "sentiment_reason": "用户对退款速度不满"},
-        {"id": "2", "text": "谢谢客服，很满意。", "keywords": "满意",
-         "sentiment_score": 0, "sentiment_reason": "用户表达满意"},
+        {"id": "1", "text": "Why hasn't anyone handled my refund?", "keywords": "Refund;Complaint",
+         "sentiment_score": 8, "sentiment_reason": "User is dissatisfied with refund speed"},
+        {"id": "2", "text": "Thank you, very satisfied.", "keywords": "Satisfied",
+         "sentiment_score": 0, "sentiment_reason": "User expresses satisfaction"},
     ]
     with open(checkpoint_path, "w", encoding="utf-8") as f:
         json.dump(checkpoint_data, f, ensure_ascii=False)
@@ -146,32 +145,32 @@ def test_run_checkpoint_resume(
     import pandas as pd
     df = pd.read_csv(output_path)
 
-    # 输出应该包含全部 5 条
+    # Output should contain all 5 records
     assert len(df) == 5
 
-    # 前2条从检查点恢复
+    # First 2 records restored from checkpoint
     row1 = df[df["id"].astype(str) == "1"].iloc[0]
-    assert "退款;投诉" in str(row1["keywords"])
+    assert "Refund;Complaint" in str(row1["keywords"])
     assert row1["sentiment_score"] == 8
 
-    # 后3条是新处理的
+    # Last 3 records are newly processed
     row3 = df[df["id"].astype(str) == "3"].iloc[0]
-    assert "服务差" in str(row3["keywords"])
+    assert "Poor Service" in str(row3["keywords"])
     assert row3["sentiment_score"] == 8
 
     row4 = df[df["id"].astype(str) == "4"].iloc[0]
-    assert "物流慢" in str(row4["keywords"])
+    assert "Slow Updates" in str(row4["keywords"])
     assert row4["sentiment_score"] == 5
 
 
 def test_run_empty_input(mock_config: Config) -> None:
-    """测试空输入文件。"""
+    """Test handling of an empty input file."""
     empty_csv = mock_config.data_input
     with open(empty_csv, "w", encoding="utf-8") as f:
         f.write("id,text\n")
 
     processor = BatchProcessor(mock_config, MagicMock(), MagicMock())
-    with pytest.raises(ValueError, match="输入文件为空"):
+    with pytest.raises(ValueError, match="Input file is empty"):
         processor.run()
 
 

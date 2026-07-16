@@ -1,4 +1,4 @@
-"""批量处理模块——支持断点续跑、进度条"""
+"""Batch processing module — supports checkpoint resumption and progress bar"""
 
 import json
 import os
@@ -9,12 +9,15 @@ import pandas as pd
 from tqdm import tqdm
 
 from src.api_client import DeepSeekClient
+from src.classifier import VALID_TYPES, classify_keywords
 from src.config_loader import Config
 from src.prompt_manager import PromptManager
+from src.reporter import write_report
 
 
 class BatchProcessor:
-    """批量处理控制器，管理 CSV 读取、分批调用、断点续跑和结果输出。"""
+    """Batch processing controller that manages CSV reading, batched API calls,
+    checkpoint resumption, and result output."""
 
     def __init__(
         self,
@@ -23,13 +26,13 @@ class BatchProcessor:
         prompt_manager: PromptManager,
         logger: Any = None,
     ) -> None:
-        """初始化。
+        """Initialize the batch processor.
 
         Args:
-            config: 全局配置。
-            api_client: DeepSeek API 客户端。
-            prompt_manager: Prompt 管理器。
-            logger: Logger 实例。
+            config: Global configuration.
+            api_client: DeepSeek API client.
+            prompt_manager: Prompt manager.
+            logger: Logger instance.
         """
         self.config = config
         self.client = api_client
@@ -37,13 +40,17 @@ class BatchProcessor:
         self.logger = logger
 
     def load_checkpoint(self, path: str) -> tuple[list[dict[str, Any]], set[str]]:
-        """加载检查点，返回已有结果和已处理 ID 集合。
+        """Load a checkpoint, returning existing results and processed ID set.
+
+        The checkpoint stores only {id, keywords, sentiment_score,
+        sentiment_reason, complaint_type} — text is reconstructed from the
+        original CSV at output time.
 
         Args:
-            path: 检查点文件路径。
+            path: Checkpoint file path.
 
         Returns:
-            (已有结果列表, 已处理 ID 集合)。
+            (existing results list, processed ID set).
         """
         if not os.path.exists(path):
             return [], set()
@@ -52,92 +59,163 @@ class BatchProcessor:
                 data = json.load(f)
             processed_ids = {str(r[self.config.id_column]) for r in data}
             if self.logger:
-                self.logger.info(f"找到检查点，已有 {len(processed_ids)} 条结果")
+                self.logger.info(
+                    f"Checkpoint found, {len(processed_ids)} results already processed"
+                )
             return data, processed_ids
         except (json.JSONDecodeError, KeyError) as exc:
             if self.logger:
-                self.logger.warning(f"检查点文件损坏，将重新开始: {exc}")
+                self.logger.warning(
+                    f"Checkpoint file corrupted, restarting from scratch: {exc}"
+                )
             return [], set()
 
     def save_checkpoint(
         self, path: str, results: list[dict[str, Any]]
     ) -> None:
-        """保存检查点。
+        """Save a checkpoint — stores only metadata, no raw text.
 
         Args:
-            path: 检查点文件路径。
-            results: 结果列表。
+            path: Checkpoint file path.
+            results: Results list (id + analysis fields only).
         """
         path_obj = Path(path)
         path_obj.parent.mkdir(parents=True, exist_ok=True)
+        # Strip text column if present (backward compatibility)
+        compact = []
+        text_col = self.config.text_column
+        for r in results:
+            entry = {k: v for k, v in r.items() if k != text_col}
+            compact.append(entry)
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(results, f, ensure_ascii=False, indent=2)
+            json.dump(compact, f, ensure_ascii=False, indent=2)
 
     def _label_row(
         self, row_id: str, text: str
     ) -> dict[str, Any]:
-        """单行文本分析。
+        """Analyze a single row of text via the LLM, then apply fallback
+        classification.
 
         Args:
-            row_id: 记录 ID。
-            text: 文本内容。
+            row_id: Record ID.
+            text: Text content.
 
         Returns:
-            标签化结果。
+            Labeled result with complaint_type.
         """
         prompt = self.prompt_mgr.render(text)
         result = self.client.analyze(prompt, self.logger)
 
+        kw_list = result.get("keywords", [])
+        if isinstance(kw_list, str):
+            kw_list = [kw_list]
+
+        # Extract complaint_type from LLM response
+        ctype = (result.get("complaint_type") or "").strip()
+        if ctype not in VALID_TYPES:
+            # Fallback: use keyword classifier
+            fallback = classify_keywords(kw_list)
+            if self.logger and ctype:
+                self.logger.debug(
+                    f"LLM returned invalid complaint_type={ctype!r}, "
+                    f"falling back to keyword classifier → {fallback}"
+                )
+            ctype = fallback or ""
+
         return {
             self.config.id_column: row_id,
-            self.config.text_column: text,
-            "keywords": ";".join(result.get("keywords", [])),
+            "keywords": ";".join(kw_list),
             "sentiment_score": result.get("sentiment_score", -1),
             "sentiment_reason": result.get("reason", ""),
+            "complaint_type": ctype,
         }
 
-    def run(self) -> str:
-        """执行完整批量处理流程。
+    def _build_output_rows(
+        self,
+        all_results: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Merge analysis results with the original CSV to reconstruct text.
+
+        Checkpoint no longer stores raw text; this method reads the original
+        CSV and joins on id.
+
+        Args:
+            all_results: Combined checkpoint + newly processed results.
 
         Returns:
-            输出 CSV 文件路径。
+            Rows ready for CSV output, each containing id, text, and
+            all analysis fields.
         """
-        # 读取输入数据
+        # Read the original source data
+        df_source = pd.read_csv(self.config.data_input)
+
+        # Build a lookup by id
+        result_map: dict[str, dict[str, Any]] = {}
+        for r in all_results:
+            result_map[str(r[self.config.id_column])] = r
+
+        id_col = self.config.id_column
+        text_col = self.config.text_column
+
+        output: list[dict[str, Any]] = []
+        for _, row in df_source.iterrows():
+            rid = str(row[id_col])
+            result = result_map.get(rid, {})
+            output.append({
+                id_col: rid,
+                text_col: row[text_col],
+                "keywords": result.get("keywords", ""),
+                "sentiment_score": result.get("sentiment_score", -1),
+                "sentiment_reason": result.get("sentiment_reason", ""),
+                "complaint_type": result.get("complaint_type", ""),
+            })
+        return output
+
+    def run(self) -> str:
+        """Execute the full batch processing pipeline.
+
+        Returns:
+            Output CSV file path.
+        """
+        # Read input data
         input_path = self.config.data_input
         if not os.path.exists(input_path):
-            raise FileNotFoundError(f"输入文件不存在: {input_path}")
+            raise FileNotFoundError(f"Input file not found: {input_path}")
 
         df = pd.read_csv(input_path)
         if df.empty:
-            raise ValueError("输入文件为空")
+            raise ValueError("Input file is empty")
 
-        # 加载检查点
+        # Load checkpoint
         ckpt_path = self.config.data_checkpoint
         existing_results, processed_ids = self.load_checkpoint(ckpt_path)
         new_results: list[dict[str, Any]] = []
 
-        # 过滤已处理的记录
-        df_filtered = df[~df[self.config.id_column].astype(str).isin(processed_ids)]
+        # Filter already processed records
+        df_filtered = df[
+            ~df[self.config.id_column].astype(str).isin(processed_ids)
+        ]
 
         if self.logger:
             self.logger.info(
-                f"总计 {len(df)} 条，已处理 {len(processed_ids)} 条，"
-                f"待处理 {len(df_filtered)} 条"
+                f"Total {len(df)} records, {len(processed_ids)} already processed, "
+                f"{len(df_filtered)} pending"
             )
 
         if df_filtered.empty:
             if self.logger:
-                self.logger.info("所有记录已处理完毕")
-            self._write_output(
-                self.config.data_output, existing_results
-            )
+                self.logger.info("All records have been processed")
+            all_results = existing_results
+            output_rows = self._build_output_rows(all_results)
+            self._write_output(self.config.data_output, output_rows)
+            self._print_report()
             return self.config.data_output
 
-        # 分批处理
+        # Process in batches
         batch_size = self.config.batch_size
         total = len(df_filtered)
 
-        with tqdm(total=total, desc="处理进度", unit="条") as pbar:
+        with tqdm(total=total, desc="Processing", unit="records") as pbar:
             for start in range(0, total, batch_size):
                 batch = df_filtered.iloc[start : start + batch_size]
                 batch_results: list[dict[str, Any]] = []
@@ -148,58 +226,60 @@ class BatchProcessor:
                     try:
                         labeled = self._label_row(row_id, text)
                         batch_results.append(labeled)
-                        pbar.set_postfix_str(
-                            f"最新: {text[:20]}..."
-                        )
+                        pbar.set_postfix_str(f"Latest: {text[:20]}...")
                     except Exception as exc:
                         if self.logger:
                             self.logger.error(
-                                f"处理 ID={row_id} 失败: {exc}"
+                                f"Failed to process ID={row_id}: {exc}"
                             )
                         batch_results.append({
                             self.config.id_column: row_id,
-                            self.config.text_column: text,
                             "keywords": "",
                             "sentiment_score": -1,
-                            "sentiment_reason": f"处理失败: {exc}",
+                            "sentiment_reason": f"Processing failed: {exc}",
+                            "complaint_type": "",
                         })
                     pbar.update(1)
 
-                # 保存该批次结果
+                # Save this batch's results
                 new_results.extend(batch_results)
-                all_results = existing_results + new_results
-                self.save_checkpoint(ckpt_path, all_results)
+                all_ckpt = existing_results + new_results
+                self.save_checkpoint(ckpt_path, all_ckpt)
 
-        # 合并结果并输出
+        # Merge results with original CSV and write output
         all_results = existing_results + new_results
+        output_rows = self._build_output_rows(all_results)
         output_path = self._write_output(
-            self.config.data_output, all_results
+            self.config.data_output, output_rows
         )
 
         if self.logger:
             self.logger.info(
-                f"处理完成！共 {len(all_results)} 条结果"
+                f"Processing complete! Total {len(all_results)} records"
             )
-            self.logger.info(f"输出文件: {output_path}")
+            self.logger.info(f"Output file: {output_path}")
+
+        # Generate summary report
+        self._print_report(output_path)
 
         return output_path
 
     def _write_output(
-        self, path: str, results: list[dict[str, Any]]
+        self, path: str, rows: list[dict[str, Any]]
     ) -> str:
-        """将结果写入 CSV。
+        """Write result rows to CSV.
 
         Args:
-            path: 输出路径。
-            results: 结果列表。
+            path: Output path.
+            rows: Fully merged rows (id, text, keywords, score, reason, type).
 
         Returns:
-            输出文件路径。
+            Output file path.
         """
         output_path = Path(path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        df_out = pd.DataFrame(results)
+        df_out = pd.DataFrame(rows)
         df_out.to_csv(
             output_path,
             index=False,
@@ -207,3 +287,15 @@ class BatchProcessor:
             quoting=1,  # csv.QUOTE_ALL
         )
         return str(output_path)
+
+    def _print_report(self, results_path: str | None = None) -> None:
+        """Generate and log the summary report."""
+        if results_path is None:
+            results_path = self.config.data_output
+        try:
+            write_report(results_path)
+            if self.logger:
+                self.logger.info("Summary report: output/report.txt")
+        except Exception as exc:
+            if self.logger:
+                self.logger.warning(f"Could not generate report: {exc}")

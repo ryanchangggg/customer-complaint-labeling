@@ -1,4 +1,4 @@
-"""工具函数模块"""
+"""Utility functions module"""
 
 import json
 import logging
@@ -14,16 +14,16 @@ def setup_logger(
     log_file: str | None = None,
     fmt: str = "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
 ) -> logging.Logger:
-    """配置并返回一个 logger 实例。
+    """Configure and return a logger instance.
 
     Args:
-        name: Logger 名称。
-        level: 日志级别。
-        log_file: 日志文件路径，为 None 则仅输出到控制台。
-        fmt: 日志格式。
+        name: Logger name.
+        level: Log level.
+        log_file: Log file path; if None, logs to console only.
+        fmt: Log format string.
 
     Returns:
-        配置完成的 Logger。
+        Configured logger.
     """
     logger = logging.getLogger(name)
     logger.setLevel(getattr(logging, level.upper(), logging.INFO))
@@ -31,12 +31,12 @@ def setup_logger(
 
     formatter = logging.Formatter(fmt)
 
-    # 控制台输出
+    # Console output
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
-    # 文件输出
+    # File output
     if log_file:
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -48,13 +48,13 @@ def setup_logger(
 
 
 def ensure_dir(path: str | Path) -> Path:
-    """确保目录存在。
+    """Ensure a directory exists.
 
     Args:
-        path: 目录路径。
+        path: Directory path.
 
     Returns:
-        目录的 Path 对象。
+        Path object of the directory.
     """
     p = Path(path)
     p.mkdir(parents=True, exist_ok=True)
@@ -62,12 +62,12 @@ def ensure_dir(path: str | Path) -> Path:
 
 
 def save_json(data: Any, path: str | Path, **kwargs: Any) -> None:
-    """保存 JSON 文件。
+    """Save data to a JSON file.
 
     Args:
-        data: 要保存的数据。
-        path: 文件路径。
-        kwargs: 传递给 json.dump 的额外参数。
+        data: Data to save.
+        path: File path.
+        kwargs: Extra arguments passed to json.dump.
     """
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -76,22 +76,22 @@ def save_json(data: Any, path: str | Path, **kwargs: Any) -> None:
 
 
 def load_json(path: str | Path) -> Any:
-    """加载 JSON 文件。
+    """Load data from a JSON file.
 
     Args:
-        path: 文件路径。
+        path: File path.
 
     Returns:
-        解析后的数据。
+        Parsed data.
     """
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
 def get_project_root() -> Path:
-    """返回项目根目录 (src/ 的父目录)。
+    """Return the project root directory (parent of src/).
 
     Returns:
-        项目根目录的 Path 对象。
+        Path object of the project root.
     """
     return Path(__file__).resolve().parent.parent

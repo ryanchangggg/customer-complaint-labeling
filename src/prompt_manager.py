@@ -1,4 +1,4 @@
-"""Prompt 管理模块"""
+"""Prompt management module"""
 
 from pathlib import Path
 
@@ -6,13 +6,13 @@ from src.utils import get_project_root
 
 
 class PromptManager:
-    """管理 Prompt 模板的加载和渲染。"""
+    """Manages prompt template loading and rendering."""
 
     def __init__(self, prompt_path: str | Path | None = None) -> None:
-        """初始化。
+        """Initialize the prompt manager.
 
         Args:
-            prompt_path: prompt.txt 路径，默认为 config/prompt.txt。
+            prompt_path: Path to prompt.txt, defaults to config/prompt.txt.
         """
         if prompt_path is None:
             prompt_path = get_project_root() / "config" / "prompt.txt"
@@ -20,21 +20,21 @@ class PromptManager:
         self._template = self._load_template()
 
     def _load_template(self) -> str:
-        """从文件加载 Prompt 模板。"""
+        """Load the prompt template from file."""
         with open(self._prompt_path, "r", encoding="utf-8") as f:
             return f.read().strip()
 
     def render(self, text: str) -> str:
-        """将 {{TEXT}} 替换为实际文本。
+        """Replace {{TEXT}} with actual text.
 
         Args:
-            text: 要分析的客服文本。
+            text: The customer service text to analyze.
 
         Returns:
-            替换后的完整 Prompt。
+            The completed prompt with text substituted.
         """
         return self._template.replace("{{TEXT}}", text)
 
     def reload(self) -> None:
-        """重新加载 Prompt 文件（热更新用）。"""
+        """Reload the prompt file (for hot-reloading)."""
         self._template = self._load_template()

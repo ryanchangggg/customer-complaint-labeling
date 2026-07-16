@@ -1,4 +1,4 @@
-"""客服投诉标签系统——主入口"""
+"""Customer Complaint Labeling System - Main Entry Point"""
 
 import argparse
 import sys
@@ -11,53 +11,53 @@ from src.utils import setup_logger
 
 
 def parse_args() -> argparse.Namespace:
-    """解析命令行参数。
+    """Parse command line arguments.
 
     Returns:
-        解析后的参数对象。
+        Parsed argument namespace.
     """
     parser = argparse.ArgumentParser(
-        description="客服投诉标签系统 - 基于 DeepSeek API 的文本标记工具"
+        description="Customer Complaint Labeling System - DeepSeek API based text labeling tool"
     )
     parser.add_argument(
         "--config",
         type=str,
         default=None,
-        help="配置文件路径 (默认: config/config.yaml)",
+        help="Configuration file path (default: config/config.yaml)",
     )
     parser.add_argument(
         "--input",
         type=str,
         default=None,
-        help="输入 CSV 文件路径 (覆盖 config.yaml 中的配置)",
+        help="Input CSV file path (overrides config.yaml)",
     )
     parser.add_argument(
         "--output",
         type=str,
         default=None,
-        help="输出 CSV 文件路径 (覆盖 config.yaml 中的配置)",
+        help="Output CSV file path (overrides config.yaml)",
     )
     parser.add_argument(
         "--batch-size",
         type=int,
         default=None,
-        help="批大小 (覆盖 config.yaml 中的配置)",
+        help="Batch size (overrides config.yaml)",
     )
     parser.add_argument(
         "--log-level",
         type=str,
         default=None,
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        help="日志级别 (覆盖 config.yaml 中的配置)",
+        help="Log level (overrides config.yaml)",
     )
     return parser.parse_args()
 
 
 def main() -> None:
-    """主函数。"""
+    """Main function."""
     args = parse_args()
 
-    # 加载配置
+    # Load configuration
     config = Config(args.config)
     logger = setup_logger(
         "labeling",
@@ -67,10 +67,10 @@ def main() -> None:
     )
 
     logger.info("=" * 50)
-    logger.info("客服投诉标签系统启动")
+    logger.info("Customer Complaint Labeling System Started")
     logger.info("=" * 50)
 
-    # 命令行参数覆盖
+    # Command line argument overrides
     if args.input:
         config._raw["data"]["input"] = args.input
     if args.output:
@@ -78,40 +78,40 @@ def main() -> None:
     if args.batch_size:
         config._raw["batch"]["size"] = args.batch_size
 
-    logger.info(f"输入文件: {config.data_input}")
-    logger.info(f"输出文件: {config.data_output}")
-    logger.info(f"批大小: {config.batch_size}")
-    logger.info(f"API模型: {config.api_model}")
+    logger.info(f"Input file: {config.data_input}")
+    logger.info(f"Output file: {config.data_output}")
+    logger.info(f"Batch size: {config.batch_size}")
+    logger.info(f"API model: {config.api_model}")
 
-    # 初始化组件
+    # Initialize components
     try:
         prompt_mgr = PromptManager()
-        logger.info("Prompt 加载成功")
+        logger.info("Prompt loaded successfully")
     except Exception as exc:
-        logger.error(f"Prompt 加载失败: {exc}")
+        logger.error(f"Prompt loading failed: {exc}")
         sys.exit(1)
 
     try:
         api_client = DeepSeekClient(config)
-        logger.info("API 客户端初始化成功")
+        logger.info("API client initialized successfully")
     except ValueError as exc:
-        logger.error(f"API 客户端初始化失败: {exc}")
-        logger.error("请先在 .env 文件中设置 DEEPSEEK_API_KEY")
+        logger.error(f"API client initialization failed: {exc}")
+        logger.error("Please set DEEPSEEK_API_KEY in the .env file")
         sys.exit(1)
     except Exception as exc:
-        logger.error(f"API 客户端初始化失败: {exc}")
+        logger.error(f"API client initialization failed: {exc}")
         sys.exit(1)
 
-    # 执行批量处理
+    # Execute batch processing
     processor = BatchProcessor(config, api_client, prompt_mgr, logger)
     try:
         output_path = processor.run()
-        logger.info(f"处理完成，结果已保存至: {output_path}")
+        logger.info(f"Processing complete. Results saved to: {output_path}")
     except FileNotFoundError as exc:
-        logger.error(f"输入文件不存在: {exc}")
+        logger.error(f"Input file not found: {exc}")
         sys.exit(1)
     except Exception as exc:
-        logger.error(f"处理过程发生异常: {exc}")
+        logger.error(f"Processing failed with exception: {exc}")
         sys.exit(1)
 
 
